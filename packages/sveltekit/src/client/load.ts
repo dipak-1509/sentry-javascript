@@ -89,6 +89,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
       return trace(
         {
           op: 'function.sveltekit.load',
+          origin: 'auto.ui.sveltekit',
           name: routeId ? routeId : event.url.pathname,
           status: 'ok',
           metadata: {
@@ -202,6 +203,7 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
           {
             name: `${method} ${requestData.url}`, // this will become the description of the span
             op: 'http.client',
+            origin: 'auto.http.sveltekit',
             data: requestData,
           },
           span => {

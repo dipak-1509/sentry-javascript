@@ -72,6 +72,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
 
       const traceLoadContext: TransactionContext = {
         op: 'function.sveltekit.load',
+        origin: 'auto.ui.sveltekit.server_load',
         name: routeId ? routeId : event.url.pathname,
         status: 'ok',
         metadata: {
@@ -126,6 +127,7 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
 
       const traceLoadContext: TransactionContext = {
         op: 'function.sveltekit.server.load',
+        origin: 'auto.ui.sveltekit.server_load',
         name: routeId ? routeId : event.url.pathname,
         status: 'ok',
         metadata: {

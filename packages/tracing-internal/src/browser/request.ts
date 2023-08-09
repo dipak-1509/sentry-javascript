@@ -322,6 +322,7 @@ export function fetchCallback(
           },
           description: `${method} ${url}`,
           op: 'http.client',
+          origin: 'auto.http.browser',
         })
       : undefined;
 
@@ -478,6 +479,7 @@ export function xhrCallback(
           },
           description: `${sentryXhrData.method} ${sentryXhrData.url}`,
           op: 'http.client',
+          origin: 'auto.http.browser',
         })
       : undefined;
 

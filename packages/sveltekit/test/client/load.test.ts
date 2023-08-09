@@ -200,6 +200,7 @@ describe('wrapLoadWithSentry', () => {
       expect(mockTrace).toHaveBeenCalledWith(
         {
           op: 'function.sveltekit.load',
+          origin: 'auto.ui.sveltekit',
           name: '/users/[id]',
           status: 'ok',
           metadata: {
@@ -217,6 +218,7 @@ describe('wrapLoadWithSentry', () => {
         ['example.com/api/users/?id=123#testfragment'],
         {
           op: 'http.client',
+          origin: 'auto.http.sveltekit',
           name: 'GET example.com/api/users/',
           data: {
             'http.method': 'GET',
@@ -231,6 +233,7 @@ describe('wrapLoadWithSentry', () => {
         ['example.com/api/users/?id=123#testfragment', { method: 'POST' }],
         {
           op: 'http.client',
+          origin: 'auto.http.sveltekit',
           name: 'POST example.com/api/users/',
           data: {
             'http.method': 'POST',
@@ -245,6 +248,7 @@ describe('wrapLoadWithSentry', () => {
         ['example.com/api/users/?id=123#testfragment', { method: 'POST', headers: { 'x-my-header': 'some value' } }],
         {
           op: 'http.client',
+          origin: 'auto.http.sveltekit',
           name: 'POST example.com/api/users/',
           data: {
             'http.method': 'POST',
@@ -259,6 +263,7 @@ describe('wrapLoadWithSentry', () => {
         [{ url: '/api/users?id=123', headers: { 'x-my-header': 'value' } } as unknown as Request],
         {
           op: 'http.client',
+          origin: 'auto.http.sveltekit',
           name: 'GET /api/users',
           data: {
             'http.method': 'GET',
@@ -292,6 +297,7 @@ describe('wrapLoadWithSentry', () => {
           1,
           {
             op: 'function.sveltekit.load',
+            origin: 'auto.ui.sveltekit',
             name: '/users/[id]',
             status: 'ok',
             metadata: {
@@ -332,6 +338,7 @@ describe('wrapLoadWithSentry', () => {
           1,
           {
             op: 'function.sveltekit.load',
+            origin: 'auto.ui.sveltekit',
             name: '/users/[id]',
             status: 'ok',
             metadata: {
@@ -360,6 +367,7 @@ describe('wrapLoadWithSentry', () => {
         expect(mockTrace).toHaveBeenCalledWith(
           {
             op: 'function.sveltekit.load',
+            origin: 'auto.ui.sveltekit',
             name: '/users/[id]',
             status: 'ok',
             metadata: {
@@ -387,6 +395,7 @@ describe('wrapLoadWithSentry', () => {
         expect(mockTrace).toHaveBeenCalledWith(
           {
             op: 'function.sveltekit.load',
+            origin: 'auto.ui.sveltekit',
             name: '/users/[id]',
             status: 'ok',
             metadata: {
