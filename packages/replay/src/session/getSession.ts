@@ -1,32 +1,21 @@
-import type { Session, SessionOptions, Timeouts } from '../types';
+import type { ReplayContainer, Session } from '../types';
 import { isSessionExpired } from '../util/isSessionExpired';
 import { logInfoNextTick } from '../util/log';
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
 import { makeSession } from './Session';
 
-interface GetSessionParams extends SessionOptions {
-  timeouts: Timeouts;
-
-  /**
-   * The current session (e.g. if stickySession is off)
-   */
-  currentSession?: Session;
-
-  traceInternals?: boolean;
-}
-
 /**
  * Get or create a session
  */
-export function getSession({
-  timeouts,
-  currentSession,
-  stickySession,
-  sessionSampleRate,
-  allowBuffering,
-  traceInternals,
-}: GetSessionParams): { type: 'new' | 'saved'; session: Session } {
+export function getSession(
+  replay: ReplayContainer,
+  { sessionSampleRate, allowBuffering }: { sessionSampleRate: number; allowBuffering: boolean },
+): { type: 'new' | 'saved'; session: Session } {
+  const currentSession = replay.session;
+  const stickySession = replay.getOptions().stickySession;
+  const { traceInternals } = replay.getOptions()._experiments;
+
   // If session exists and is passed, use it instead of always hitting session storage
   const session = currentSession || (stickySession && fetchSession(traceInternals));
 
@@ -34,7 +23,10 @@ export function getSession({
     // If there is a session, check if it is valid (e.g. "last activity" time
     // should be within the "session idle time", and "session started" time is
     // within "max session time").
-    const isExpired = isSessionExpired(session, timeouts);
+    const isExpired = isSessionExpired(session, {
+      maxReplayDuration: replay.getOptions().maxReplayDuration,
+      ...replay.timeouts,
+    });
 
     if (!isExpired || (allowBuffering && session.shouldRefresh)) {
       return { type: 'saved', session };

@@ -1,5 +1,5 @@
 import {
-  MAX_SESSION_LIFE,
+  MAX_REPLAY_DURATION,
   SESSION_IDLE_EXPIRE_DURATION,
   SESSION_IDLE_PAUSE_DURATION,
   WINDOW,
@@ -9,6 +9,7 @@ import * as FetchSession from '../../../src/session/fetchSession';
 import { getSession } from '../../../src/session/getSession';
 import { saveSession } from '../../../src/session/saveSession';
 import { makeSession } from '../../../src/session/Session';
+import type { ReplayContainer, Session, Timeouts } from '../../../src/types';
 
 jest.mock('@sentry/utils', () => {
   return {
@@ -33,6 +34,32 @@ function createMockSession(when: number = Date.now()) {
   });
 }
 
+function mockReplay({
+  timeouts,
+  session,
+  stickySession,
+  maxReplayDuration = MAX_REPLAY_DURATION,
+}: {
+  timeouts: Timeouts;
+  session?: Session;
+  stickySession: boolean;
+  maxReplayDuration?: number;
+}): ReplayContainer {
+  return {
+    timeouts,
+    session,
+    getOptions: () => {
+      return {
+        stickySession,
+        maxReplayDuration,
+        _experiments: {
+          traceInternals: false,
+        },
+      };
+    },
+  } as ReplayContainer;
+}
+
 describe('Unit | session | getSession', () => {
   beforeAll(() => {
     jest.spyOn(CreateSession, 'createSession');
@@ -47,15 +74,16 @@ describe('Unit | session | getSession', () => {
   });
 
   it('creates a non-sticky session when one does not exist', function () {
-    const { session } = getSession({
-      timeouts: {
-        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-        sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
-        maxSessionLife: MAX_SESSION_LIFE,
-      },
-      stickySession: false,
-      ...SAMPLE_OPTIONS,
-    });
+    const { session } = getSession(
+      mockReplay({
+        timeouts: {
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
+        },
+        stickySession: false,
+      }),
+      SAMPLE_OPTIONS,
+    );
 
     expect(FetchSession.fetchSession).not.toHaveBeenCalled();
     expect(CreateSession.createSession).toHaveBeenCalled();
@@ -76,15 +104,16 @@ describe('Unit | session | getSession', () => {
   it('creates a non-sticky session, regardless of session existing in sessionStorage', function () {
     saveSession(createMockSession(Date.now() - 10000));
 
-    const { session } = getSession({
-      timeouts: {
-        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-        sessionIdleExpire: 1000,
-        maxSessionLife: MAX_SESSION_LIFE,
-      },
-      stickySession: false,
-      ...SAMPLE_OPTIONS,
-    });
+    const { session } = getSession(
+      mockReplay({
+        timeouts: {
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: 1000,
+        },
+        stickySession: false,
+      }),
+      SAMPLE_OPTIONS,
+    );
 
     expect(FetchSession.fetchSession).not.toHaveBeenCalled();
     expect(CreateSession.createSession).toHaveBeenCalled();
@@ -93,22 +122,23 @@ describe('Unit | session | getSession', () => {
   });
 
   it('creates a non-sticky session, when one is expired', function () {
-    const { session } = getSession({
-      timeouts: {
-        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-        sessionIdleExpire: 1000,
-        maxSessionLife: MAX_SESSION_LIFE,
-      },
-      stickySession: false,
-      ...SAMPLE_OPTIONS,
-      currentSession: makeSession({
-        id: 'old_session_id',
-        lastActivity: Date.now() - 1001,
-        started: Date.now() - 1001,
-        segmentId: 0,
-        sampled: 'session',
+    const { session } = getSession(
+      mockReplay({
+        timeouts: {
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: 1000,
+        },
+        stickySession: false,
+        session: makeSession({
+          id: 'old_session_id',
+          lastActivity: Date.now() - 1001,
+          started: Date.now() - 1001,
+          segmentId: 0,
+          sampled: 'session',
+        }),
       }),
-    });
+      SAMPLE_OPTIONS,
+    );
 
     expect(FetchSession.fetchSession).not.toHaveBeenCalled();
     expect(CreateSession.createSession).toHaveBeenCalled();
@@ -120,16 +150,19 @@ describe('Unit | session | getSession', () => {
   it('creates a sticky session when one does not exist', function () {
     expect(FetchSession.fetchSession()).toBe(null);
 
-    const { session } = getSession({
-      timeouts: {
-        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-        sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
-        maxSessionLife: MAX_SESSION_LIFE,
+    const { session } = getSession(
+      mockReplay({
+        timeouts: {
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
+        },
+        stickySession: true,
+      }),
+      {
+        sessionSampleRate: 1.0,
+        allowBuffering: false,
       },
-      stickySession: true,
-      sessionSampleRate: 1.0,
-      allowBuffering: false,
-    });
+    );
 
     expect(FetchSession.fetchSession).toHaveBeenCalled();
     expect(CreateSession.createSession).toHaveBeenCalled();
@@ -158,16 +191,19 @@ describe('Unit | session | getSession', () => {
     const now = Date.now();
     saveSession(createMockSession(now));
 
-    const { session } = getSession({
-      timeouts: {
-        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-        sessionIdleExpire: 1000,
-        maxSessionLife: MAX_SESSION_LIFE,
+    const { session } = getSession(
+      mockReplay({
+        timeouts: {
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: 1000,
+        },
+        stickySession: true,
+      }),
+      {
+        sessionSampleRate: 1.0,
+        allowBuffering: false,
       },
-      stickySession: true,
-      sessionSampleRate: 1.0,
-      allowBuffering: false,
-    });
+    );
 
     expect(FetchSession.fetchSession).toHaveBeenCalled();
     expect(CreateSession.createSession).not.toHaveBeenCalled();
@@ -186,15 +222,16 @@ describe('Unit | session | getSession', () => {
     const now = Date.now();
     saveSession(createMockSession(Date.now() - 2000));
 
-    const { session } = getSession({
-      timeouts: {
-        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-        sessionIdleExpire: 1000,
-        maxSessionLife: MAX_SESSION_LIFE,
-      },
-      stickySession: true,
-      ...SAMPLE_OPTIONS,
-    });
+    const { session } = getSession(
+      mockReplay({
+        timeouts: {
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: 1000,
+        },
+        stickySession: true,
+      }),
+      SAMPLE_OPTIONS,
+    );
 
     expect(FetchSession.fetchSession).toHaveBeenCalled();
     expect(CreateSession.createSession).toHaveBeenCalled();
@@ -206,22 +243,23 @@ describe('Unit | session | getSession', () => {
   });
 
   it('fetches a non-expired non-sticky session', function () {
-    const { session } = getSession({
-      timeouts: {
-        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-        sessionIdleExpire: 1000,
-        maxSessionLife: MAX_SESSION_LIFE,
-      },
-      stickySession: false,
-      ...SAMPLE_OPTIONS,
-      currentSession: makeSession({
-        id: 'test_session_uuid_2',
-        lastActivity: +new Date() - 500,
-        started: +new Date() - 500,
-        segmentId: 0,
-        sampled: 'session',
+    const { session } = getSession(
+      mockReplay({
+        timeouts: {
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: 1000,
+        },
+        stickySession: false,
+        session: makeSession({
+          id: 'test_session_uuid_2',
+          lastActivity: +new Date() - 500,
+          started: +new Date() - 500,
+          segmentId: 0,
+          sampled: 'session',
+        }),
       }),
-    });
+      SAMPLE_OPTIONS,
+    );
 
     expect(FetchSession.fetchSession).not.toHaveBeenCalled();
     expect(CreateSession.createSession).not.toHaveBeenCalled();
@@ -231,23 +269,26 @@ describe('Unit | session | getSession', () => {
   });
 
   it('re-uses the same "buffer" session if it is expired and has never sent a buffered replay', function () {
-    const { type, session } = getSession({
-      timeouts: {
-        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-        sessionIdleExpire: 1000,
-        maxSessionLife: MAX_SESSION_LIFE,
-      },
-      stickySession: false,
-      ...SAMPLE_OPTIONS,
-      currentSession: makeSession({
-        id: 'test_session_uuid_2',
-        lastActivity: +new Date() - MAX_SESSION_LIFE - 1,
-        started: +new Date() - MAX_SESSION_LIFE - 1,
-        segmentId: 0,
-        sampled: 'buffer',
+    const { type, session } = getSession(
+      mockReplay({
+        timeouts: {
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: 1000,
+        },
+        stickySession: false,
+        session: makeSession({
+          id: 'test_session_uuid_2',
+          lastActivity: +new Date() - MAX_REPLAY_DURATION - 1,
+          started: +new Date() - MAX_REPLAY_DURATION - 1,
+          segmentId: 0,
+          sampled: 'buffer',
+        }),
       }),
-      allowBuffering: true,
-    });
+      {
+        ...SAMPLE_OPTIONS,
+        allowBuffering: true,
+      },
+    );
 
     expect(FetchSession.fetchSession).not.toHaveBeenCalled();
     expect(CreateSession.createSession).not.toHaveBeenCalled();
@@ -261,24 +302,24 @@ describe('Unit | session | getSession', () => {
   it('creates a new session if it is expired and it was a "buffer" session that has sent a replay', function () {
     const currentSession = makeSession({
       id: 'test_session_uuid_2',
-      lastActivity: +new Date() - MAX_SESSION_LIFE - 1,
-      started: +new Date() - MAX_SESSION_LIFE - 1,
+      lastActivity: +new Date() - MAX_REPLAY_DURATION - 1,
+      started: +new Date() - MAX_REPLAY_DURATION - 1,
       segmentId: 0,
       sampled: 'buffer',
     });
     currentSession.shouldRefresh = false;
 
-    const { type, session } = getSession({
-      timeouts: {
-        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-        sessionIdleExpire: 1000,
-        maxSessionLife: MAX_SESSION_LIFE,
-      },
-      stickySession: false,
-      ...SAMPLE_OPTIONS,
-      currentSession,
-      allowBuffering: true,
-    });
+    const { type, session } = getSession(
+      mockReplay({
+        timeouts: {
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: 1000,
+        },
+        stickySession: false,
+        session: currentSession,
+      }),
+      { ...SAMPLE_OPTIONS, allowBuffering: true },
+    );
 
     expect(FetchSession.fetchSession).not.toHaveBeenCalled();
     expect(CreateSession.createSession).not.toHaveBeenCalled();
