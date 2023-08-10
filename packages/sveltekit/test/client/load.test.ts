@@ -200,7 +200,7 @@ describe('wrapLoadWithSentry', () => {
       expect(mockTrace).toHaveBeenCalledWith(
         {
           op: 'function.sveltekit.load',
-          origin: 'auto.ui.sveltekit',
+          origin: 'auto.function.sveltekit',
           name: '/users/[id]',
           status: 'ok',
           metadata: {
@@ -297,7 +297,7 @@ describe('wrapLoadWithSentry', () => {
           1,
           {
             op: 'function.sveltekit.load',
-            origin: 'auto.ui.sveltekit',
+            origin: 'auto.function.sveltekit',
             name: '/users/[id]',
             status: 'ok',
             metadata: {
@@ -338,7 +338,7 @@ describe('wrapLoadWithSentry', () => {
           1,
           {
             op: 'function.sveltekit.load',
-            origin: 'auto.ui.sveltekit',
+            origin: 'auto.function.sveltekit',
             name: '/users/[id]',
             status: 'ok',
             metadata: {
@@ -367,7 +367,7 @@ describe('wrapLoadWithSentry', () => {
         expect(mockTrace).toHaveBeenCalledWith(
           {
             op: 'function.sveltekit.load',
-            origin: 'auto.ui.sveltekit',
+            origin: 'auto.function.sveltekit',
             name: '/users/[id]',
             status: 'ok',
             metadata: {
@@ -395,7 +395,7 @@ describe('wrapLoadWithSentry', () => {
         expect(mockTrace).toHaveBeenCalledWith(
           {
             op: 'function.sveltekit.load',
-            origin: 'auto.ui.sveltekit',
+            origin: 'auto.function.sveltekit',
             name: '/users/[id]',
             status: 'ok',
             metadata: {
