@@ -32,7 +32,8 @@ export function autoEndTransactionOnResponseEnd(transaction: Transaction, res: S
 
   // Prevent double-wrapping
   // res.end may be undefined during build when using `next export` to statically export a Next.js app
-  if (res.end && !(res.end as WrappedResponseEndMethod).__sentry_original__) {
+  // res might be undefined if users manually call the API handlers without passing along the req and res objects.
+  if (res && res.end && !(res.end as WrappedResponseEndMethod).__sentry_original__) {
     fill(res, 'end', wrapEndMethod);
   }
 }
